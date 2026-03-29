@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>إحصاء النوم - ابن سينا</title>
+    <!-- Tailwind & Icons -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&family=Tajawal:wght@400;700;900&display=swap');
+        
+        :root { --primary: #4f46e5; }
+        body { font-family: 'Tajawal', 'Plus Jakarta Sans', sans-serif; background-color: #f8fafc; }
+        
+        /* حل مشكلة الطبقات للهواتف */
+        .app-header { position: relative; z-index: 10; }
+        .app-nav { position: relative; z-index: 50; margin-top: -2.5rem; }
+        .app-main { position: relative; z-index: 20; }
+
+        .active-tab { background: var(--primary); color: white; box-shadow: 0 10px 20px -5px rgba(79, 70, 229, 0.4); }
+        .inactive-tab { color: #64748b; background: white; border: 1px solid #f1f5f9; }
+        
+        /* تحسين شريط الاختيار للمس بالهاتف */
+        input[type=range] { -webkit-appearance: none; width: 100%; background: transparent; cursor: pointer; }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none; height: 30px; width: 30px;
+            border-radius: 50%; background: #ffffff;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            margin-top: -10px; border: 4px solid var(--primary);
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%; height: 10px; background: rgba(255, 255, 255, 0.2); border-radius: 10px;
+        }
+        
+        .pin-drop { animation: pinDropEffect 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+        @keyframes pinDropEffect {
+            0% { transform: translateY(-50px) scale(0); opacity: 0; }
+            100% { transform: translateY(0) scale(1); opacity: 1; }
+        }
+
+        /* تحسين عرض المخطط على الهواتف */
+        .chart-scroll-area {
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+        }
+        .chart-scroll-area::-webkit-scrollbar { display: none; }
+
+        .ltr { direction: ltr; }
+        .rtl { direction: rtl; }
+    </style>
+</head>
+<body class="min-h-screen rtl" id="body-root">
+
+    <!-- Header Section -->
+    <header class="app-header bg-indigo-950 text-white pt-12 pb-32 px-6 text-center overflow-hidden">
+        <div class="absolute inset-0 opacity-10 pointer-events-none ltr">
+            <div class="absolute top-5 left-5 rotate-12"><i data-lucide="moon" size="48"></i></div>
+            <div class="absolute bottom-10 right-5 -rotate-12"><i data-lucide="sparkles" size="48"></i></div>
+        </div>
+        
+        <!-- Language -->
+        <button onclick="window.toggleLanguage()" class="absolute top-4 left-4 bg-white/10 border border-white/20 px-4 py-1.5 rounded-full text-xs font-bold z-50">
+            <span id="lang-btn-text">English</span>
+        </button>
+
+        <div class="max-w-2xl mx-auto relative z-10">
+            <span id="badge-text" class="inline-block px-4 py-1 rounded-full bg-indigo-500 text-[9px] font-bold tracking-widest uppercase mb-4 shadow-lg border border-white/10">
+                Ibn-Sina Health Booth Interactive
+            </span>
+            <h1 id="main-title" class="text-3xl md:text-6xl font-black mb-3 leading-tight">إحصاء النوم</h1>
+            <p id="main-desc" class="text-indigo-200 text-sm md:text-lg mb-6 opacity-90">سجل ساعات نومك بدقة (حتى نصف ساعة) وساهم في دراستنا الحية.</p>
+            
+            <div class="inline-flex items-center gap-2 px-5 py-2.5 bg-white/5 border border-white/10 rounded-2xl backdrop-blur-md shadow-xl">
+                <i data-lucide="award" size="18" class="text-indigo-400"></i>
+                <span id="header-credit" class="text-xs md:text-sm font-bold text-white">تصميم يوسف فراس تموين</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Navigation (Fixed Z-Index) -->
+    <nav class="app-nav max-w-xl mx-auto px-4 flex justify-center mb-8">
+        <div class="bg-white p-1.5 rounded-2xl shadow-xl flex gap-1 border border-slate-100 w-full md:w-auto">
+            <button id="btn-interactive" onclick="window.switchView('interactive')" class="active-tab flex-1 md:flex-none px-6 py-3.5 rounded-xl font-bold flex items-center justify-center gap-2 transition-all">
+                <i data-lucide="bar-chart-3" size="18"></i> <span id="nav-chart">المخطط</span>
+            </button>
+            <button id="btn-info" onclick="window.switchView('info')" class="inactive-tab flex-1 md:flex-none px-6 py-3.5 rounded-xl font-bold flex items-center justify-center gap-2 transition-all">
+                <i data-lucide="brain" size="18"></i> <span id="nav-science">العلم</span>
+            </button>
+        </div>
+    </nav>
+
+    <main class="app-main max-w-5xl mx-auto px-4 pb-20">
+        
+        <!-- SECTION 1: CHART -->
+        <section id="interactive-section" class="space-y-6">
+            <!-- Stats -->
+            <div class="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-6">
+                <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-3">
+                    <div class="w-10 h-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center ltr"><i data-lucide="users" size="20"></i></div>
+                    <div><p id="stat-label-1" class="text-slate-400 text-[9px] font-black uppercase mb-0.5">المشاركون</p><p id="stat-total" class="text-lg font-black text-slate-800">0</p></div>
+                </div>
+                <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-3 ltr">
+                    <div class="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center"><i data-lucide="clock" size="20"></i></div>
+                    <div class="rtl text-right w-full"><p id="stat-label-2" class="text-slate-400 text-[9px] font-black uppercase mb-0.5">المتوسط</p><p id="stat-avg" class="text-lg font-black text-slate-800">0</p></div>
+                </div>
+                <div class="hidden md:flex bg-white p-5 rounded-2xl border border-slate-100 shadow-sm items-center gap-3 ltr">
+                    <div class="w-10 h-10 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center"><i data-lucide="target" size="20"></i></div>
+                    <div class="rtl text-right w-full"><p id="stat-label-3" class="text-slate-400 text-[9px] font-black uppercase mb-0.5">الهدف</p><p id="stat-goal" class="text-lg font-black text-slate-800">٧-٩ ساعات</p></div>
+                </div>
+            </div>
+
+            <!-- Chart Card -->
+            <div class="bg-white rounded-[2rem] border border-slate-200 shadow-xl p-5 md:p-10 mb-6">
+                <div class="text-center mb-6">
+                    <h2 id="chart-title" class="text-xl font-black text-slate-800 mb-1">بث مباشر للبيانات</h2>
+                    <p id="chart-desc" class="text-slate-500 text-xs italic">اسحب المخطط لليمين واليسار لرؤية جميع الساعات</p>
+                </div>
+
+                <!-- Legend -->
+                <div class="flex flex-wrap justify-center gap-4 mb-6 text-[8px] font-black uppercase tracking-wider opacity-80">
+                    <div class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-red-500"></span> <span id="leg-1">نقص حاد</span></div>
+                    <div class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span> <span id="leg-2">تحذير</span></div>
+                    <div class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> <span id="leg-3">مثالي</span></div>
+                    <div class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-blue-500"></span> <span id="leg-4">نوم زائد</span></div>
+                </div>
+
+                <div class="relative bg-slate-50 rounded-[1.5rem] border border-dashed border-slate-200 h-[350px] mb-8 overflow-x-auto chart-scroll-area px-2 pt-8">
+                    <div id="pins-container" class="w-full h-full flex justify-between items-end pb-10 ltr min-w-[700px]">
+                        <!-- JS Pins -->
+                    </div>
+                </div>
+
+                <!-- Interaction -->
+                <div id="interaction-card" class="bg-indigo-600 rounded-[2rem] p-6 md:p-10 text-white shadow-lg overflow-hidden">
+                    <div id="input-area">
+                        <h3 id="input-title" class="text-lg font-black mb-8 text-center leading-tight">كم ساعة نمت الليلة الماضية؟</h3>
+                        <div class="max-w-md mx-auto space-y-10">
+                            <input type="range" min="3" max="12" step="0.5" value="7.5" id="hour-slider" oninput="window.updateHours(this.value)">
+                            <div class="text-center">
+                                <div class="inline-flex items-center gap-4 bg-white/10 backdrop-blur-lg border border-white/20 px-8 py-4 rounded-[1.5rem] mb-8">
+                                    <i data-lucide="moon" size="32" class="text-indigo-200"></i>
+                                    <span id="hour-display" class="text-5xl font-black leading-none tabular-nums">7.5</span>
+                                    <span id="hour-unit" class="text-indigo-200 font-bold text-lg">ساعة</span>
+                                </div>
+                                <button id="submit-btn" onclick="window.dropPin()" class="w-full bg-white text-indigo-700 font-black py-4 rounded-xl text-xl hover:bg-indigo-50 shadow-lg active:scale-95 transition-all">ضع الدبوس</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Result -->
+                    <div id="result-area" class="hidden animate-in zoom-in duration-300">
+                        <div class="bg-white text-slate-900 rounded-[1.5rem] p-6 shadow-2xl">
+                            <p id="res-status" class="text-2xl font-black mb-4">الحالة</p>
+                            <div id="res-card" class="p-5 rounded-xl border border-slate-100 mb-6 bg-slate-50 shadow-inner">
+                                <p id="res-fact" class="text-slate-600 leading-relaxed text-sm"></p>
+                            </div>
+                            <button onclick="window.resetEntry()" class="w-full py-4 bg-slate-900 text-white font-black rounded-xl text-lg hover:bg-slate-800 transition-all flex items-center justify-center gap-2">
+                                <i data-lucide="user-plus" size="20"></i> <span id="reset-text">الزائر التالي</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 2: SCIENCE (More detailed as requested) -->
+        <section id="info-section" class="hidden space-y-6 animate-in fade-in duration-300">
+            <div class="bg-white rounded-[2.5rem] p-6 md:p-12 shadow-xl border border-slate-100">
+                <div class="flex items-center gap-4 mb-10">
+                    <div class="p-4 bg-indigo-600 text-white rounded-2xl shadow-lg animate-pulse"><i data-lucide="brain" size="28"></i></div>
+                    <h2 id="sci-title" class="text-2xl md:text-3xl font-black text-slate-800">موسوعة علم النوم</h2>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
+                    <div class="p-6 bg-slate-50 rounded-2xl border border-slate-100">
+                        <h4 class="font-black text-lg mb-2 text-indigo-700">الغسيل الدماغي (Glymphatic System)</h4>
+                        <p class="text-slate-600 text-sm leading-relaxed">أثناء النوم العميق، يتقلص حجم خلايا الدماغ لفتح مسارات تسمح للسائل النخاعي بغسل البروتينات السامة والفضلات الأيضية المتراكمة نهاراً.</p>
+                    </div>
+                    <div class="p-6 bg-slate-50 rounded-2xl border border-slate-100">
+                        <h4 class="font-black text-lg mb-2 text-indigo-700">هرمونات العتمة والضغط</h4>
+                        <p class="text-slate-600 text-sm leading-relaxed">الميلاتونين يرتفع عند غياب الضوء ليخبر جسمك بالاستعداد. بينما الأدينوزين يتراكم كل ساعة تقضيها مستيقظاً ليخلق "ضغط النوم".</p>
+                    </div>
+                    <div class="p-6 bg-slate-50 rounded-2xl border border-slate-100">
+                        <h4 class="font-black text-lg mb-2 text-indigo-700">أهمية مرحلة الأحلام (REM)</h4>
+                        <p class="text-slate-600 text-sm leading-relaxed">تحدث بعد حوالي 90 دقيقة من النوم. الدماغ فيها يعالج المشاعر المعقدة ويثبت المهارات الجديدة. نقصها يسبب القلق وضعف الذاكرة.</p>
+                    </div>
+                    <div class="p-6 bg-slate-50 rounded-2xl border border-slate-100">
+                        <h4 class="font-black text-lg mb-2 text-indigo-700">إصلاح الحمض النووي (DNA)</h4>
+                        <p class="text-slate-600 text-sm leading-relaxed">في مراحل النوم غير السريع، تنشط عمليات ترميم الخلايا وإصلاح التلف الجيني الذي قد يحدث بسبب الضغوط والملوثات البيئية.</p>
+                    </div>
+                </div>
+
+                <div class="bg-indigo-900 text-white p-8 rounded-3xl relative overflow-hidden">
+                    <h3 id="tips-title" class="text-xl font-black mb-6 text-center leading-relaxed">نصيحة طبية: النوم المتقطع بـ 6 ساعات أسوأ من النوم المتصل بـ 5 ساعات من حيث جودة التعافي.</h3>
+                </div>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="mt-16 text-center pb-12">
+            <div class="inline-block px-8 py-4 bg-white rounded-3xl shadow-sm border border-slate-100">
+                <p id="footer-tag" class="text-slate-400 text-[8px] font-black uppercase tracking-[0.2em] mb-1">Ibn-Sina Booth • 2024</p>
+                <p id="footer-credit" class="text-indigo-600 font-black text-xs">تصميم يوسف فراس تموين</p>
+            </div>
+        </footer>
+    </main>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js";
+        import { getFirestore, collection, addDoc, onSnapshot, query } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-firestore.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-auth.js";
+
+        // Global State
+        let db, auth, authReady = false;
+        let pins = [];
+        let lang = 'ar';
+        let selectedHours = 7.5;
+        const config = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'ibn-sina-mobile-v4';
+
+        const content = {
+            en: {
+                badge: "Ibn-Sina Health Booth Interactive", title: "Sleep Census", desc: "Live community study on recovery and brain health.",
+                navChart: "Chart", navScience: "Science",
+                stat1: "People", stat2: "Average", stat3: "Goal", goalVal: "7-9 hrs",
+                leg1: "Critical", leg2: "Warning", leg3: "Ideal", leg4: "Oversleep",
+                chartTitle: "Live Data Feed", chartDesc: "Swipe chart left/right to see all hours",
+                inputTitle: "How many hours did you sleep?", unit: "HRS", btnSubmit: "Place My Pin",
+                resHead: "Analysis", resetBtn: "Next Person", credit: "Designed by Yousef Firas Tamwin",
+                sciTitle: "The Science of Sleep",
+                reports: {
+                    low: { s: "Severe Deprivation", f: "Brain function matches legal intoxication. Metabolism is impaired." },
+                    mid: { s: "Insufficient Sleep", f: "6 hours builds 'sleep debt', increasing stress and decreasing immunity." },
+                    good: { s: "Optimal Recovery", f: "7-9 hours is the biological target for DNA and cell repair." },
+                    high: { s: "Extended Sleep", f: "10+ hours may signal underlying health needs or cause grogginess." }
+                }
+            },
+            ar: {
+                badge: "منصة ابن سينا الصحية التفاعلية", title: "إحصاء النوم", desc: "دراسة مجتمعية حية للراحة والتعافي وصحة الدماغ.",
+                navChart: "المخطط", navScience: "علم النوم",
+                stat1: "المشاركون", stat2: "المتوسط", stat3: "الهدف", goalVal: "٧-٩ ساعات",
+                leg1: "نقص حاد", leg2: "تحذير", leg3: "مثالي", leg4: "نوم زائد",
+                chartTitle: "بث مباشر للبيانات", chartDesc: "اسحب المخطط لليمين واليسار لرؤية جميع الساعات",
+                inputTitle: "كم ساعة نمت الليلة الماضية؟", unit: "ساعة", btnSubmit: "ضع الدبوس",
+                resHead: "التقرير الطبي", resetBtn: "الزائر التالي", credit: "تصميم يوسف فراس تموين",
+                sciTitle: "موسوعة علم النوم",
+                reports: {
+                    low: { s: "نقص حاد في النوم", f: "وظائف الدماغ تشبه حالة السكر. عمليات الأيض تتعطل بشكل ملحوظ." },
+                    mid: { s: "نوم غير كافٍ", f: "6 ساعات تسبب ديوناً صحية ترفع هرمون التوتر وتقلل كفاءة المناعة." },
+                    good: { s: "تعافي مثالي", f: "7-9 ساعات هي الهدف البيولوجي لترميم الخلايا واستقرار الذاكرة." },
+                    high: { s: "نوم زائد", f: "النوم لأكثر من 10 ساعات قد يشير لحاجات أيضية معينة أو يسبب خمولاً." }
+                }
+            }
+        };
+
+        // UI Global Functions
+        window.toggleLanguage = () => {
+            lang = lang === 'en' ? 'ar' : 'en';
+            document.getElementById('body-root').className = lang === 'ar' ? 'min-h-screen rtl' : 'min-h-screen ltr';
+            document.getElementById('lang-btn-text').innerText = lang === 'en' ? 'العربية' : 'English';
+            updateUI(); renderChart();
+        };
+
+        window.switchView = (v) => {
+            document.getElementById('interactive-section').classList.toggle('hidden', v !== 'interactive');
+            document.getElementById('info-section').classList.toggle('hidden', v !== 'info');
+            document.getElementById('btn-interactive').className = v === 'interactive' ? 'active-tab flex-1 px-6 py-3.5 rounded-xl font-bold flex items-center justify-center gap-2' : 'inactive-tab flex-1 px-6 py-3.5 rounded-xl font-bold flex items-center justify-center gap-2';
+            document.getElementById('btn-info').className = v === 'info' ? 'active-tab flex-1 px-6 py-3.5 rounded-xl font-bold flex items-center justify-center gap-2' : 'inactive-tab flex-1 px-6 py-3.5 rounded-xl font-bold flex items-center justify-center gap-2';
+        };
+
+        window.updateHours = (v) => {
+            selectedHours = parseFloat(v);
+            document.getElementById('hour-display').innerText = v;
+        };
+
+        window.dropPin = async () => {
+            const btn = document.getElementById('submit-btn');
+            btn.disabled = true; btn.innerText = "...";
+            const newPin = { hours: selectedHours, ts: Date.now(), jitter: (Math.random() - 0.5) * 18 };
+            if (authReady) {
+                try { await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'sleep_entries'), newPin); } catch (e) { console.error(e); }
+            } else { pins.push(newPin); renderChart(); }
+            showReport(selectedHours);
+            btn.disabled = false; btn.innerText = content[lang].btnSubmit;
+        };
+
+        window.resetEntry = () => {
+            document.getElementById('input-area').classList.remove('hidden');
+            document.getElementById('result-area').classList.add('hidden');
+        };
+
+        function updateUI() {
+            const l = content[lang];
+            document.getElementById('badge-text').innerText = l.badge;
+            document.getElementById('main-title').innerText = l.title;
+            document.getElementById('main-desc').innerText = l.desc;
+            document.getElementById('header-credit').innerText = l.credit;
+            document.getElementById('footer-credit').innerText = l.credit;
+            document.getElementById('nav-chart').innerText = l.navChart;
+            document.getElementById('nav-science').innerText = l.navScience;
+            document.getElementById('stat-label-1').innerText = l.stat1;
+            document.getElementById('stat-label-2').innerText = l.stat2;
+            document.getElementById('stat-label-3').innerText = l.stat3;
+            document.getElementById('stat-goal').innerText = l.goalVal;
+            document.getElementById('chart-title').innerText = l.chartTitle;
+            document.getElementById('chart-desc').innerText = l.chartDesc;
+            document.getElementById('input-title').innerText = l.inputTitle;
+            document.getElementById('hour-unit').innerText = l.unit;
+            document.getElementById('submit-btn').innerText = l.btnSubmit;
+            document.getElementById('res-header').innerText = l.resHead;
+            document.getElementById('reset-text').innerText = l.resetBtn;
+            document.getElementById('leg-1').innerText = l.leg1;
+            document.getElementById('leg-2').innerText = l.leg2;
+            document.getElementById('leg-3').innerText = l.leg3;
+            document.getElementById('leg-4').innerText = l.leg4;
+            document.getElementById('sci-title').innerText = l.sciTitle;
+            lucide.createIcons();
+        }
+
+        function showReport(h) {
+            const l = content[lang].reports;
+            const r = h <= 5 ? l.low : h <= 6.5 ? l.mid : h <= 9 ? l.good : l.high;
+            document.getElementById('input-area').classList.add('hidden');
+            document.getElementById('result-area').classList.remove('hidden');
+            const st = document.getElementById('res-status');
+            st.innerText = r.s;
+            st.className = `text-2xl font-black mb-4 ${h <= 5 ? 'text-red-600' : h <= 6.5 ? 'text-amber-600' : h <= 9 ? 'text-emerald-600' : 'text-blue-600'}`;
+            document.getElementById('res-fact').innerText = r.f;
+        }
+
+        function renderChart() {
+            const container = document.getElementById('pins-container');
+            container.innerHTML = '';
+            const scale = []; for (let i = 3; i <= 12; i += 0.5) scale.push(i);
+            document.getElementById('stat-total').innerText = pins.length;
+            const avg = pins.length ? (pins.reduce((s, p) => s + p.hours, 0) / pins.length).toFixed(1) : 0;
+            document.getElementById('stat-avg').innerText = avg;
+
+            scale.forEach(h => {
+                const col = document.createElement('div');
+                col.className = 'flex-1 flex flex-col items-center relative h-full min-w-[30px]';
+                const stack = document.createElement('div');
+                stack.className = 'absolute bottom-0 w-full flex flex-col-reverse items-center';
+                pins.filter(p => p.hours === h).forEach((p, i) => {
+                    const d = document.createElement('div');
+                    const color = h <= 5 ? 'bg-red-500' : h <= 6.5 ? 'bg-amber-500' : h <= 9 ? 'bg-emerald-500' : 'bg-blue-500';
+                    d.className = `w-4 h-4 rounded-full border border-white absolute shadow-sm pin-drop ${color}`;
+                    d.style.bottom = `${i * 7}px`;
+                    d.style.left = `calc(50% + ${p.jitter || 0}px - 8px)`;
+                    stack.appendChild(d);
+                });
+                const lbl = document.createElement('div');
+                lbl.className = 'absolute -bottom-8 flex flex-col items-center ltr';
+                lbl.innerHTML = `<span class="text-[10px] font-black ${h % 1 === 0 ? 'text-slate-800' : 'text-slate-300'}">${h}</span>`;
+                col.appendChild(stack); col.appendChild(lbl); container.appendChild(col);
+            });
+        }
+
+        // Init
+        const init = async () => {
+            if (config) {
+                const fbApp = initializeApp(config);
+                auth = getAuth(fbApp); db = getFirestore(fbApp);
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else { await signInAnonymously(auth); }
+                authReady = true;
+                onSnapshot(query(collection(db, 'artifacts', appId, 'public', 'data', 'sleep_entries')), (snap) => {
+                    pins = snap.docs.map(d => d.data()); renderChart();
+                });
+            } else { renderChart(); }
+        };
+
+        window.addEventListener('load', () => { updateUI(); init(); });
+    </script>
+</body>
+</html>
+
+
