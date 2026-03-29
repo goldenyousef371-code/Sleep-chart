@@ -206,311 +206,124 @@
         </footer>
     </main>
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js";
-        import { getFirestore, collection, addDoc, onSnapshot, query } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-firestore.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-auth.js";
+    
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js";
+    import { getFirestore, collection, addDoc, onSnapshot, query } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-firestore.js";
+    import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-auth.js";
 
-        // Global State
-        let db, auth, authReady = false;
-        let pins = [];
-        let lang = 'ar';
-        let selectedHours = 7.5;
-        const config = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'ibn-sina-mobile-v4';
+    const firebaseConfig = {
+      apiKey: "AIzaSyAll8tGx1THSx36_0XOhcS5hjteFqUyqBk",
+      authDomain: "ibn-sina-booth.firebaseapp.com",
+      databaseURL: "https://ibn-sina-booth-default-rtdb.firebaseio.com",
+      projectId: "ibn-sina-booth",
+      storageBucket: "ibn-sina-booth.firebasestorage.app",
+      messagingSenderId: "318446181008",
+      appId: "1:318446181008:web:1aadcaf427c75461bf1615",
+      measurementId: "G-E63L9THNCN"
+    };
 
-        const content = {
-            en: {
-                badge: "Ibn-Sina Health Booth Interactive", title: "Sleep Census", desc: "Live community study on recovery and brain health.",
-                navChart: "Chart", navScience: "Science",
-                stat1: "People", stat2: "Average", stat3: "Goal", goalVal: "7-9 hrs",
-                leg1: "Critical", leg2: "Warning", leg3: "Ideal", leg4: "Oversleep",
-                chartTitle: "Live Data Feed", chartDesc: "Swipe chart left/right to see all hours",
-                inputTitle: "How many hours did you sleep?", unit: "HRS", btnSubmit: "Place My Pin",
-                resHead: "Analysis", resetBtn: "Next Person", credit: "Designed by Yousef Firas Tamwin",
-                sciTitle: "The Science of Sleep",
-                reports: {
-                    low: { s: "Severe Deprivation", f: "Brain function matches legal intoxication. Metabolism is impaired." },
-                    mid: { s: "Insufficient Sleep", f: "6 hours builds 'sleep debt', increasing stress and decreasing immunity." },
-                    good: { s: "Optimal Recovery", f: "7-9 hours is the biological target for DNA and cell repair." },
-                    high: { s: "Extended Sleep", f: "10+ hours may signal underlying health needs or cause grogginess." }
-                }
-            },
-            ar: {
-                badge: "منصة ابن سينا الصحية التفاعلية", title: "إحصاء النوم", desc: "دراسة مجتمعية حية للراحة والتعافي وصحة الدماغ.",
-                navChart: "المخطط", navScience: "علم النوم",
-                stat1: "المشاركون", stat2: "المتوسط", stat3: "الهدف", goalVal: "٧-٩ ساعات",
-                leg1: "نقص حاد", leg2: "تحذير", leg3: "مثالي", leg4: "نوم زائد",
-                chartTitle: "بث مباشر للبيانات", chartDesc: "اسحب المخطط لليمين واليسار لرؤية جميع الساعات",
-                inputTitle: "كم ساعة نمت الليلة الماضية؟", unit: "ساعة", btnSubmit: "ضع الدبوس",
-                resHead: "التقرير الطبي", resetBtn: "الزائر التالي", credit: "تصميم يوسف فراس تموين",
-                sciTitle: "موسوعة علم النوم",
-                reports: {
-                    low: { s: "نقص حاد في النوم", f: "وظائف الدماغ تشبه حالة السكر. عمليات الأيض تتعطل بشكل ملحوظ." },
-                    mid: { s: "نوم غير كافٍ", f: "6 ساعات تسبب ديوناً صحية ترفع هرمون التوتر وتقلل كفاءة المناعة." },
-                    good: { s: "تعافي مثالي", f: "7-9 ساعات هي الهدف البيولوجي لترميم الخلايا واستقرار الذاكرة." },
-                    high: { s: "نوم زائد", f: "النوم لأكثر من 10 ساعات قد يشير لحاجات أيضية معينة أو يسبب خمولاً." }
-                }
-            }
-        };
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const auth = getAuth(app);
 
-        // UI Global Functions
-        window.toggleLanguage = () => {
-            lang = lang === 'en' ? 'ar' : 'en';
-            document.getElementById('body-root').className = lang === 'ar' ? 'min-h-screen rtl' : 'min-h-screen ltr';
-            document.getElementById('lang-btn-text').innerText = lang === 'en' ? 'العربية' : 'English';
-            updateUI(); renderChart();
-        };
+    // --- State Management ---
+    window.pins = [];
+    window.selectedHours = 7.5;
+    window.lang = 'ar';
 
-        window.switchView = (v) => {
-            document.getElementById('interactive-section').classList.toggle('hidden', v !== 'interactive');
-            document.getElementById('info-section').classList.toggle('hidden', v !== 'info');
-            document.getElementById('btn-interactive').className = v === 'interactive' ? 'active-tab flex-1 px-6 py-3.5 rounded-xl font-bold flex items-center justify-center gap-2' : 'inactive-tab flex-1 px-6 py-3.5 rounded-xl font-bold flex items-center justify-center gap-2';
-            document.getElementById('btn-info').className = v === 'info' ? 'active-tab flex-1 px-6 py-3.5 rounded-xl font-bold flex items-center justify-center gap-2' : 'inactive-tab flex-1 px-6 py-3.5 rounded-xl font-bold flex items-center justify-center gap-2';
-        };
+    // --- 1. Fix the Numbers (Slider Logic) ---
+    window.updateHours = (v) => {
+        window.selectedHours = parseFloat(v);
+        const display = document.getElementById('hour-display');
+        if (display) display.innerText = v;
+    };
 
-        window.updateHours = (v) => {
-            selectedHours = parseFloat(v);
-            document.getElementById('hour-display').innerText = v;
-        };
-
-        window.dropPin = async () => {
-            const btn = document.getElementById('submit-btn');
-            btn.disabled = true; btn.innerText = "...";
-            const newPin = { hours: selectedHours, ts: Date.now(), jitter: (Math.random() - 0.5) * 18 };
-            if (authReady) {
-                try { await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'sleep_entries'), newPin); } catch (e) { console.error(e); }
-            } else { pins.push(newPin); renderChart(); }
-            showReport(selectedHours);
-            btn.disabled = false; btn.innerText = content[lang].btnSubmit;
-        };
-
-        window.resetEntry = () => {
-            document.getElementById('input-area').classList.remove('hidden');
-            document.getElementById('result-area').classList.add('hidden');
-        };
-
-        function updateUI() {
-            const l = content[lang];
-            document.getElementById('badge-text').innerText = l.badge;
-            document.getElementById('main-title').innerText = l.title;
-            document.getElementById('main-desc').innerText = l.desc;
-            document.getElementById('header-credit').innerText = l.credit;
-            document.getElementById('footer-credit').innerText = l.credit;
-            document.getElementById('nav-chart').innerText = l.navChart;
-            document.getElementById('nav-science').innerText = l.navScience;
-            document.getElementById('stat-label-1').innerText = l.stat1;
-            document.getElementById('stat-label-2').innerText = l.stat2;
-            document.getElementById('stat-label-3').innerText = l.stat3;
-            document.getElementById('stat-goal').innerText = l.goalVal;
-            document.getElementById('chart-title').innerText = l.chartTitle;
-            document.getElementById('chart-desc').innerText = l.chartDesc;
-            document.getElementById('input-title').innerText = l.inputTitle;
-            document.getElementById('hour-unit').innerText = l.unit;
-            document.getElementById('submit-btn').innerText = l.btnSubmit;
-            document.getElementById('res-header').innerText = l.resHead;
-            document.getElementById('reset-text').innerText = l.resetBtn;
-            document.getElementById('leg-1').innerText = l.leg1;
-            document.getElementById('leg-2').innerText = l.leg2;
-            document.getElementById('leg-3').innerText = l.leg3;
-            document.getElementById('leg-4').innerText = l.leg4;
-            document.getElementById('sci-title').innerText = l.sciTitle;
-            lucide.createIcons();
-        }
-
-        function showReport(h) {
-            const l = content[lang].reports;
-            const r = h <= 5 ? l.low : h <= 6.5 ? l.mid : h <= 9 ? l.good : l.high;
-            document.getElementById('input-area').classList.add('hidden');
-            document.getElementById('result-area').classList.remove('hidden');
-            const st = document.getElementById('res-status');
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js";
-        import { getFirestore, collection, addDoc, onSnapshot, query } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-firestore.js";
-        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-auth.js";
-
-        // 1. YOUR FIREBASE CONFIG
-        const firebaseConfig = {
-          apiKey: "AIzaSyAll8tGx1THSx36_0XOhcS5hjteFqUyqBk",
-          authDomain: "ibn-sina-booth.firebaseapp.com",
-          databaseURL: "https://ibn-sina-booth-default-rtdb.firebaseio.com",
-          projectId: "ibn-sina-booth",
-          storageBucket: "ibn-sina-booth.firebasestorage.app",
-          messagingSenderId: "318446181008",
-          appId: "1:318446181008:web:1aadcaf427c75461bf1615",
-          measurementId: "G-E63L9THNCN"
-        };
-
-        // 2. INITIALIZE
-        const fbApp = initializeApp(firebaseConfig);
-        const auth = getAuth(fbApp); 
-        const db = getFirestore(fbApp);
-
-        // Global State
-        let pins = [];
-        let lang = 'ar';
-        let selectedHours = 7.5;
-
-        const content = {
-            en: {
-                badge: "Ibn-Sina Health Booth Interactive", title: "Sleep Census", desc: "Live community study on recovery and brain health.",
-                navChart: "Chart", navScience: "Science",
-                stat1: "People", stat2: "Average", stat3: "Goal", goalVal: "7-9 hrs",
-                leg1: "Critical", leg2: "Warning", leg3: "Ideal", leg4: "Oversleep",
-                chartTitle: "Live Data Feed", chartDesc: "Swipe chart left/right to see all hours",
-                inputTitle: "How many hours did you sleep?", unit: "HRS", btnSubmit: "Place My Pin",
-                resHead: "Analysis", resetBtn: "Next Person", credit: "Designed by Yousef Firas Tamwin",
-                sciTitle: "The Science of Sleep",
-                reports: {
-                    low: { s: "Severe Deprivation", f: "Brain function matches legal intoxication. Metabolism is impaired." },
-                    mid: { s: "Insufficient Sleep", f: "6 hours builds 'sleep debt', increasing stress and decreasing immunity." },
-                    good: { s: "Optimal Recovery", f: "7-9 hours is the biological target for DNA and cell repair." },
-                    high: { s: "Extended Sleep", f: "10+ hours may signal underlying health needs or cause grogginess." }
-                }
-            },
-            ar: {
-                badge: "منصة ابن سينا الصحية التفاعلية", title: "إحصاء النوم", desc: "دراسة مجتمعية حية للراحة والتعافي وصحة الدماغ.",
-                navChart: "المخطط", navScience: "علم النوم",
-                stat1: "المشاركون", stat2: "المتوسط", stat3: "الهدف", goalVal: "٧-٩ ساعات",
-                leg1: "نقص حاد", leg2: "تحذير", leg3: "مثالي", leg4: "نوم زائد",
-                chartTitle: "بث مباشر للبيانات", chartDesc: "اسحب المخطط لليمين واليسار لرؤية جميع الساعات",
-                inputTitle: "كم ساعة نمت الليلة الماضية؟", unit: "ساعة", btnSubmit: "ضع الدبوس",
-                resHead: "التقرير الطبي", resetBtn: "الزائر التالي", credit: "تصميم يوسف فراس تموين",
-                sciTitle: "موسوعة علم النوم",
-                reports: {
-                    low: { s: "نقص حاد في النوم", f: "وظائف الدماغ تشبه حالة السكر. عمليات الأيض تتعطل بشكل ملحوظ." },
-                    mid: { s: "نوم غير كافٍ", f: "6 ساعات تسبب ديوناً صحية ترفع هرمون التوتر وتقلل كفاءة المناعة." },
-                    good: { s: "تعافي مثالي", f: "7-9 ساعات هي الهدف البيولوجي لترميم الخلايا واستقرار الذاكرة." },
-                    high: { s: "نوم زائد", f: "النوم لأكثر من 10 ساعات قد يشير لحاجات أيضية معينة أو يسبب خمولاً." }
-                }
-            }
-        };
-
-        // UI Global Functions
-        window.toggleLanguage = () => {
-            lang = lang === 'en' ? 'ar' : 'en';
-            document.getElementById('body-root').className = lang === 'ar' ? 'min-h-screen rtl' : 'min-h-screen ltr';
-            document.getElementById('lang-btn-text').innerText = lang === 'en' ? 'العربية' : 'English';
-            updateUI(); renderChart();
-        };
-
-        window.switchView = (v) => {
-            document.getElementById('interactive-section').classList.toggle('hidden', v !== 'interactive');
-            document.getElementById('info-section').classList.toggle('hidden', v !== 'info');
-            document.getElementById('btn-interactive').className = v === 'interactive' ? 'active-tab flex-1 px-6 py-3.5 rounded-xl font-bold flex items-center justify-center gap-2' : 'inactive-tab flex-1 px-6 py-3.5 rounded-xl font-bold flex items-center justify-center gap-2';
-            document.getElementById('btn-info').className = v === 'info' ? 'active-tab flex-1 px-6 py-3.5 rounded-xl font-bold flex items-center justify-center gap-2' : 'inactive-tab flex-1 px-6 py-3.5 rounded-xl font-bold flex items-center justify-center gap-2';
-        };
-
-        window.updateHours = (v) => {
-            selectedHours = parseFloat(v);
-            document.getElementById('hour-display').innerText = v;
-        };
-
-        window.dropPin = async () => {
-            const btn = document.getElementById('submit-btn');
-            btn.disabled = true; 
-            btn.innerText = "...";
-            
-            const newPin = { 
-                hours: selectedHours, 
-                ts: Date.now(), 
-                jitter: (Math.random() - 0.5) * 18 
-            };
-
-            try { 
-                await addDoc(collection(db, 'sleep_entries'), newPin); 
-                showReport(selectedHours);
-            } catch (e) { 
-                console.error("Database Error:", e);
-                alert("Please make sure you enabled 'Test Mode' in Firestore!");
-            }
-            btn.disabled = false; 
-            btn.innerText = content[lang].btnSubmit;
-        };
-
-        window.resetEntry = () => {
-            document.getElementById('input-area').classList.remove('hidden');
-            document.getElementById('result-area').classList.add('hidden');
-        };
-
-        function updateUI() {
-            const l = content[lang];
-            document.getElementById('badge-text').innerText = l.badge;
-            document.getElementById('main-title').innerText = l.title;
-            document.getElementById('main-desc').innerText = l.desc;
-            document.getElementById('header-credit').innerText = l.credit;
-            document.getElementById('footer-credit').innerText = l.credit;
-            document.getElementById('nav-chart').innerText = l.navChart;
-            document.getElementById('nav-science').innerText = l.navScience;
-            document.getElementById('stat-label-1').innerText = l.stat1;
-            document.getElementById('stat-label-2').innerText = l.stat2;
-            document.getElementById('stat-label-3').innerText = l.stat3;
-            document.getElementById('stat-goal').innerText = l.goalVal;
-            document.getElementById('chart-title').innerText = l.chartTitle;
-            document.getElementById('chart-desc').innerText = l.chartDesc;
-            document.getElementById('input-title').innerText = l.inputTitle;
-            document.getElementById('hour-unit').innerText = l.unit;
-            document.getElementById('submit-btn').innerText = l.btnSubmit;
-            document.getElementById('res-status').innerText = l.resHead;
-            document.getElementById('reset-text').innerText = l.resetBtn;
-            document.getElementById('leg-1').innerText = l.leg1;
-            document.getElementById('leg-2').innerText = l.leg2;
-            document.getElementById('leg-3').innerText = l.leg3;
-            document.getElementById('leg-4').innerText = l.leg4;
-            document.getElementById('sci-title').innerText = l.sciTitle;
-            lucide.createIcons();
-        }
-
-        function showReport(h) {
-            const l = content[lang].reports;
-            const r = h <= 5 ? l.low : h <= 6.5 ? l.mid : h <= 9 ? l.good : l.high;
-            document.getElementById('input-area').classList.add('hidden');
-            document.getElementById('result-area').classList.remove('hidden');
-            const st = document.getElementById('res-status');
-            st.innerText = r.s;
-            st.className = `text-2xl font-black mb-4 ${h <= 5 ? 'text-red-600' : h <= 6.5 ? 'text-amber-600' : h <= 9 ? 'text-emerald-600' : 'text-blue-600'}`;
-            document.getElementById('res-fact').innerText = r.f;
-        }
-
-        function renderChart() {
-            const container = document.getElementById('pins-container');
-            container.innerHTML = '';
-            const scale = []; for (let i = 3; i <= 12; i += 0.5) scale.push(i);
-            document.getElementById('stat-total').innerText = pins.length;
-            const avg = pins.length ? (pins.reduce((s, p) => s + p.hours, 0) / pins.length).toFixed(1) : 0;
-            document.getElementById('stat-avg').innerText = avg;
-
-            scale.forEach(h => {
-                const col = document.createElement('div');
-                col.className = 'flex-1 flex flex-col items-center relative h-full min-w-[30px]';
-                const stack = document.createElement('div');
-                stack.className = 'absolute bottom-0 w-full flex flex-col-reverse items-center';
-                pins.filter(p => p.hours === h).forEach((p, i) => {
-                    const d = document.createElement('div');
-                    const color = h <= 5 ? 'bg-red-500' : h <= 6.5 ? 'bg-amber-500' : h <= 9 ? 'bg-emerald-500' : 'bg-blue-500';
-                    d.className = `w-4 h-4 rounded-full border border-white absolute shadow-sm pin-drop ${color}`;
-                    d.style.bottom = `${i * 7}px`;
-                    d.style.left = `calc(50% + ${p.jitter || 0}px - 8px)`;
-                    stack.appendChild(d);
-                });
-                const lbl = document.createElement('div');
-                lbl.className = 'absolute -bottom-8 flex flex-col items-center ltr';
-                lbl.innerHTML = `<span class="text-[10px] font-black ${h % 1 === 0 ? 'text-slate-800' : 'text-slate-300'}">${h}</span>`;
-                col.appendChild(stack); col.appendChild(lbl); container.appendChild(col);
+    // --- 2. Fix the Buttons (Submit Logic) ---
+    window.dropPin = async () => {
+        const btn = document.getElementById('submit-btn');
+        btn.disabled = true;
+        btn.innerText = "...";
+        
+        try {
+            await addDoc(collection(db, "sleep_entries"), {
+                hours: window.selectedHours,
+                ts: Date.now(),
+                jitter: (Math.random() - 0.5) * 18
             });
+            showReport(window.selectedHours);
+        } catch (e) {
+            console.error("Firebase Error:", e);
+            alert("Error: Make sure Firestore Rules are set to 'allow read, write: if true;'");
         }
+        btn.disabled = false;
+        btn.innerText = window.lang === 'ar' ? "ضع الدبوس" : "Place My Pin";
+    };
 
-        // INIT & SYNC
-        window.addEventListener('load', async () => { 
-            updateUI(); 
+    // --- 3. View Switching & Language ---
+    window.switchView = (v) => {
+        document.getElementById('interactive-section').classList.toggle('hidden', v !== 'interactive');
+        document.getElementById('info-section').classList.toggle('hidden', v !== 'info');
+    };
+
+    window.toggleLanguage = () => {
+        window.lang = window.lang === 'en' ? 'ar' : 'en';
+        document.getElementById('body-root').className = window.lang === 'ar' ? 'min-h-screen rtl' : 'min-h-screen ltr';
+        updateUI();
+        renderChart();
+    };
+
+    window.resetEntry = () => {
+        document.getElementById('input-area').classList.remove('hidden');
+        document.getElementById('result-area').classList.add('hidden');
+    };
+
+    // --- 4. Chart & UI Rendering ---
+    function renderChart() {
+        const container = document.getElementById('pins-container');
+        if (!container) return;
+        container.innerHTML = '';
+        
+        const scale = []; for (let i = 3; i <= 12; i += 0.5) scale.push(i);
+        document.getElementById('stat-total').innerText = window.pins.length;
+        
+        const avg = window.pins.length ? (window.pins.reduce((s, p) => s + p.hours, 0) / window.pins.length).toFixed(1) : 0;
+        document.getElementById('stat-avg').innerText = avg;
+
+        scale.forEach(h => {
+            const col = document.createElement('div');
+            col.className = 'flex-1 flex flex-col items-center relative h-full min-w-[30px]';
+            const stack = document.createElement('div');
+            stack.className = 'absolute bottom-0 w-full flex flex-col-reverse items-center';
             
-            // Quiet sign-in
-            await signInAnonymously(auth).catch(e => console.error(e));
-
-            // LIVE SYNC: Updates every screen automatically when database changes
-            onSnapshot(collection(db, 'sleep_entries'), (snap) => {
-                pins = snap.docs.map(d => d.data()); 
-                renderChart();
+            window.pins.filter(p => p.hours === h).forEach((p, i) => {
+                const d = document.createElement('div');
+                const color = h <= 5 ? 'bg-red-500' : h <= 6.5 ? 'bg-amber-500' : h <= 9 ? 'bg-emerald-500' : 'bg-blue-500';
+                d.className = `w-4 h-4 rounded-full border border-white absolute shadow-sm pin-drop ${color}`;
+                d.style.bottom = `${i * 7}px`;
+                d.style.left = `calc(50% + ${p.jitter || 0}px - 8px)`;
+                stack.appendChild(d);
             });
+
+            const lbl = document.createElement('div');
+            lbl.className = 'absolute -bottom-8 flex flex-col items-center ltr';
+            lbl.innerHTML = `<span class="text-[10px] font-black ${h % 1 === 0 ? 'text-slate-800' : 'text-slate-300'}">${h}</span>`;
+            col.appendChild(stack); col.appendChild(lbl); container.appendChild(col);
         });
-    </script>
+    }
+
+    // --- 5. Startup ---
+    window.addEventListener('load', async () => {
+        // Essential: Initialize Translation UI
+        if (typeof updateUI === "function") updateUI();
+        
+        // Connect to Live Database
+        await signInAnonymously(auth).catch(e => console.error(e));
+        onSnapshot(collection(db, 'sleep_entries'), (snap) => {
+            window.pins = snap.docs.map(d => d.data());
+            renderChart();
+        });
+    });
+</script>
+
+
