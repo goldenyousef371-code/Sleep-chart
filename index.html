@@ -206,124 +206,78 @@
         </footer>
     </main>
 
-    
-<script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js";
-    import { getFirestore, collection, addDoc, onSnapshot, query } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-firestore.js";
-    import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-auth.js";
+    <script type="module">
+    // ... (Keep your Firebase Config and Imports at the top exactly as they are) ...
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyAll8tGx1THSx36_0XOhcS5hjteFqUyqBk",
-      authDomain: "ibn-sina-booth.firebaseapp.com",
-      databaseURL: "https://ibn-sina-booth-default-rtdb.firebaseio.com",
-      projectId: "ibn-sina-booth",
-      storageBucket: "ibn-sina-booth.firebasestorage.app",
-      messagingSenderId: "318446181008",
-      appId: "1:318446181008:web:1aadcaf427c75461bf1615",
-      measurementId: "G-E63L9THNCN"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
-    const auth = getAuth(app);
-
-    // --- State Management ---
-    window.pins = [];
-    window.selectedHours = 7.5;
-    window.lang = 'ar';
-
-    // --- 1. Fix the Numbers (Slider Logic) ---
-    window.updateHours = (v) => {
-        window.selectedHours = parseFloat(v);
-        const display = document.getElementById('hour-display');
-        if (display) display.innerText = v;
-    };
-
-    // --- 2. Fix the Buttons (Submit Logic) ---
-    window.dropPin = async () => {
-        const btn = document.getElementById('submit-btn');
-        btn.disabled = true;
-        btn.innerText = "...";
-        
-        try {
-            await addDoc(collection(db, "sleep_entries"), {
-                hours: window.selectedHours,
-                ts: Date.now(),
-                jitter: (Math.random() - 0.5) * 18
-            });
-            showReport(window.selectedHours);
-        } catch (e) {
-            console.error("Firebase Error:", e);
-            alert("Error: Make sure Firestore Rules are set to 'allow read, write: if true;'");
-        }
-        btn.disabled = false;
-        btn.innerText = window.lang === 'ar' ? "ضع الدبوس" : "Place My Pin";
-    };
-
-    // --- 3. View Switching & Language ---
-    window.switchView = (v) => {
-        document.getElementById('interactive-section').classList.toggle('hidden', v !== 'interactive');
-        document.getElementById('info-section').classList.toggle('hidden', v !== 'info');
-    };
-
+    // --- Fixed Language Switcher ---
     window.toggleLanguage = () => {
         window.lang = window.lang === 'en' ? 'ar' : 'en';
-        document.getElementById('body-root').className = window.lang === 'ar' ? 'min-h-screen rtl' : 'min-h-screen ltr';
+        
+        // Fix the page direction
+        const root = document.getElementById('body-root');
+        root.dir = window.lang === 'ar' ? 'rtl' : 'ltr';
+        root.className = `min-h-screen ${window.lang === 'ar' ? 'rtl' : 'ltr'}`;
+        
+        // Update the button text immediately
+        document.getElementById('lang-btn-text').innerText = window.lang === 'en' ? 'العربية' : 'English';
+        
         updateUI();
         renderChart();
     };
 
-    window.resetEntry = () => {
-        document.getElementById('input-area').classList.remove('hidden');
-        document.getElementById('result-area').classList.add('hidden');
+    // --- Fixed View Switcher (Science Button) ---
+    window.switchView = (v) => {
+        const interactive = document.getElementById('interactive-section');
+        const info = document.getElementById('info-section');
+        
+        if (v === 'info') {
+            interactive.classList.add('hidden');
+            info.classList.remove('hidden');
+            // This forces the page to scroll to the top so the purple header stays in sync
+            window.scrollTo(0, 0); 
+        } else {
+            interactive.classList.remove('hidden');
+            info.classList.add('hidden');
+        }
+
+        // Update button colors
+        document.getElementById('btn-interactive').className = v === 'interactive' ? 'active-tab flex-1 px-6 py-3.5 rounded-xl font-bold flex items-center justify-center gap-2' : 'inactive-tab flex-1 px-6 py-3.5 rounded-xl font-bold flex items-center justify-center gap-2';
+        document.getElementById('btn-info').className = v === 'info' ? 'active-tab flex-1 px-6 py-3.5 rounded-xl font-bold flex items-center justify-center gap-2' : 'inactive-tab flex-1 px-6 py-3.5 rounded-xl font-bold flex items-center justify-center gap-2';
+        
+        lucide.createIcons(); // Refresh icons
     };
 
-    // --- 4. Chart & UI Rendering ---
-    function renderChart() {
-        const container = document.getElementById('pins-container');
-        if (!container) return;
-        container.innerHTML = '';
-        
-        const scale = []; for (let i = 3; i <= 12; i += 0.5) scale.push(i);
-        document.getElementById('stat-total').innerText = window.pins.length;
-        
-        const avg = window.pins.length ? (window.pins.reduce((s, p) => s + p.hours, 0) / window.pins.length).toFixed(1) : 0;
-        document.getElementById('stat-avg').innerText = avg;
+    // --- The "Safe" updateUI Function ---
+    function updateUI() {
+        const l = content[window.lang];
+        const safeSet = (id, text) => {
+            const el = document.getElementById(id);
+            if (el) el.innerText = text;
+        };
 
-        scale.forEach(h => {
-            const col = document.createElement('div');
-            col.className = 'flex-1 flex flex-col items-center relative h-full min-w-[30px]';
-            const stack = document.createElement('div');
-            stack.className = 'absolute bottom-0 w-full flex flex-col-reverse items-center';
-            
-            window.pins.filter(p => p.hours === h).forEach((p, i) => {
-                const d = document.createElement('div');
-                const color = h <= 5 ? 'bg-red-500' : h <= 6.5 ? 'bg-amber-500' : h <= 9 ? 'bg-emerald-500' : 'bg-blue-500';
-                d.className = `w-4 h-4 rounded-full border border-white absolute shadow-sm pin-drop ${color}`;
-                d.style.bottom = `${i * 7}px`;
-                d.style.left = `calc(50% + ${p.jitter || 0}px - 8px)`;
-                stack.appendChild(d);
-            });
-
-            const lbl = document.createElement('div');
-            lbl.className = 'absolute -bottom-8 flex flex-col items-center ltr';
-            lbl.innerHTML = `<span class="text-[10px] font-black ${h % 1 === 0 ? 'text-slate-800' : 'text-slate-300'}">${h}</span>`;
-            col.appendChild(stack); col.appendChild(lbl); container.appendChild(col);
-        });
+        // Update every text element safely
+        safeSet('badge-text', l.badge);
+        safeSet('main-title', l.title);
+        safeSet('main-desc', l.desc);
+        safeSet('nav-chart', l.navChart);
+        safeSet('nav-science', l.navScience);
+        safeSet('stat-label-1', l.stat1);
+        safeSet('stat-label-2', l.stat2);
+        safeSet('stat-label-3', l.stat3);
+        safeSet('stat-goal', l.goalVal);
+        safeSet('chart-title', l.chartTitle);
+        safeSet('chart-desc', l.chartDesc);
+        safeSet('input-title', l.inputTitle);
+        safeSet('hour-unit', l.unit);
+        safeSet('submit-btn', l.btnSubmit);
+        safeSet('header-credit', l.credit);
+        safeSet('footer-credit', l.credit);
+        
+        lucide.createIcons();
     }
-
-    // --- 5. Startup ---
-    window.addEventListener('load', async () => {
-        // Essential: Initialize Translation UI
-        if (typeof updateUI === "function") updateUI();
-        
-        // Connect to Live Database
-        await signInAnonymously(auth).catch(e => console.error(e));
-        onSnapshot(collection(db, 'sleep_entries'), (snap) => {
-            window.pins = snap.docs.map(d => d.data());
-            renderChart();
-        });
-    });
+    
+    // ... (Keep your renderChart and Firebase onSnapshot functions below) ...
 </script>
+
 
 
