@@ -53,7 +53,7 @@
 <body class="min-h-screen rtl" id="body-root">
 
     <!-- Header Section -->
-    <header class="app-header bg-indigo-950 text-white pt-12 pb-32 px-6 text-center overflow-hidden">
+    <header class="app-header relative bg-indigo-950 text-white pt-12 pb-32 px-6 text-center overflow-hidden">
         <div class="absolute inset-0 opacity-10 pointer-events-none ltr">
             <div class="absolute top-5 left-5 rotate-12"><i data-lucide="moon" size="48"></i></div>
             <div class="absolute bottom-10 right-5 -rotate-12"><i data-lucide="sparkles" size="48"></i></div>
@@ -284,31 +284,44 @@
         renderChart();
     };
 
-    window.switchView = (v) => {
+        window.switchView = (v) => {
+        // 1. Show/Hide the correct sections
         document.getElementById('interactive-section').classList.toggle('hidden', v !== 'interactive');
         document.getElementById('info-section').classList.toggle('hidden', v !== 'info');
-        window.scrollTo(0, 0);
+        
+        // 2. FIX: Jump to top so the purple header isn't broken or cut off
+        window.scrollTo(0, 0); 
+
+        // 3. Update the button colors (Active/Inactive)
+        document.getElementById('btn-interactive').className = v === 'interactive' ? 'active-tab flex-1 px-6 py-3.5 rounded-xl font-bold flex items-center justify-center gap-2' : 'inactive-tab flex-1 px-6 py-3.5 rounded-xl font-bold flex items-center justify-center gap-2';
+        document.getElementById('btn-info').className = v === 'info' ? 'active-tab flex-1 px-6 py-3.5 rounded-xl font-bold flex items-center justify-center gap-2' : 'inactive-tab flex-1 px-6 py-3.5 rounded-xl font-bold flex items-center justify-center gap-2';
+        
         lucide.createIcons();
     };
 
     window.dropPin = async () => {
         const btn = document.getElementById('submit-btn');
-        btn.disabled = true; btn.innerText = "...";
+        btn.disabled = true; 
+        btn.innerText = "...";
         
         try {
+            // Save to Firebase
             await addDoc(collection(db, 'sleep_entries'), {
                 hours: window.selectedHours,
                 ts: Date.now(),
                 jitter: (Math.random() - 0.5) * 15
             });
+            // Show the health status result
             showReport(window.selectedHours);
         } catch (e) {
             console.error(e);
-            alert("Database Error! Ensure Firestore rules are set to 'true'.");
+            alert("Database Error! Check your Firestore Rules.");
         }
         btn.disabled = false;
+        // Fix: Use the current language for the button text
         btn.innerText = content[window.lang].btnSubmit;
     };
+
 
     window.resetEntry = () => {
         document.getElementById('input-area').classList.remove('hidden');
