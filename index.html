@@ -233,40 +233,61 @@
     window.lang = 'ar';
     window.selectedHours = 7.5;
 
-    const content = {
-        en: {
-            badge: "Ibn-Sina Health Booth Interactive", title: "Sleep Census", desc: "Live community study on recovery and brain health.",
-            navChart: "Chart", navScience: "Science",
-            stat1: "People", stat2: "Average", stat3: "Goal", goalVal: "7-9 hrs",
-            leg1: "Critical", leg2: "Warning", leg3: "Ideal", leg4: "Oversleep",
-            chartTitle: "Live Data Feed", chartDesc: "Swipe chart left/right to see all hours",
-            inputTitle: "How many hours did you sleep?", unit: "HRS", btnSubmit: "Place My Pin",
-            resHead: "Analysis", resetBtn: "Next Person", credit: "Designed by Yousef Firas Tamwin",
-            sciTitle: "The Science of Sleep",
-            reports: {
-                low: { s: "Severe Deprivation", f: "Brain function matches legal intoxication. Metabolism is impaired." },
-                mid: { s: "Insufficient Sleep", f: "6 hours builds 'sleep debt', increasing stress and decreasing immunity." },
-                good: { s: "Optimal Recovery", f: "7-9 hours is the biological target for DNA and cell repair." },
-                high: { s: "Extended Sleep", f: "10+ hours may signal underlying health needs or cause grogginess." }
-            }
-        },
-        ar: {
-            badge: "منصة ابن سينا الصحية التفاعلية", title: "إحصاء النوم", desc: "دراسة مجتمعية حية للراحة والتعافي وصحة الدماغ.",
-            navChart: "المخطط", navScience: "علم النوم",
-            stat1: "المشاركون", stat2: "المتوسط", stat3: "الهدف", goalVal: "٧-٩ ساعات",
-            leg1: "نقص حاد", leg2: "تحذير", leg3: "مثالي", leg4: "نوم زائد",
-            chartTitle: "بث مباشر للبيانات", chartDesc: "اسحب المخطط لليمين واليسار لرؤية جميع الساعات",
-            inputTitle: "كم ساعة نمت الليلة الماضية؟", unit: "ساعة", btnSubmit: "ضع الدبوس",
-            resHead: "التقرير الطبي", resetBtn: "الزائر التالي", credit: "تصميم يوسف فراس تموين",
-            sciTitle: "موسوعة علم النوم",
-            reports: {
-                low: { s: "نقص حاد في النوم", f: "وظائف الدماغ تشبه حالة السكر. عمليات الأيض تتعطل بشكل ملحوظ." },
-                mid: { s: "نوم غير كافٍ", f: "6 ساعات تسبب ديوناً صحية ترفع هرمون التوتر وتقلل كفاءة المناعة." },
-                good: { s: "تعافي مثالي", f: "7-9 ساعات هي الهدف البيولوجي لترميم الخلايا واستقرار الذاكرة." },
-                high: { s: "نوم زائد", f: "النوم لأكثر من 10 ساعات قد يشير لحاجات أيضية معينة أو يسبب خمولاً." }
-            }
+   const content = {
+    en: {
+        badge: "Ibn-Sina Health Booth Interactive", title: "Sleep Census", desc: "Live community study on recovery and brain health.",
+        navChart: "Chart", navScience: "Science",
+        stat1: "People", stat2: "Average", stat3: "Goal", goalVal: "7-9 hrs",
+        leg1: "Critical", leg2: "Warning", leg3: "Ideal", leg4: "Oversleep",
+        chartTitle: "Live Data Feed", chartDesc: "Swipe chart left/right to see all hours",
+        inputTitle: "How many hours did you sleep?", unit: "HRS", btnSubmit: "Place My Pin",
+        resHead: "Analysis", resetBtn: "Next Person", credit: "Designed by Yousef Firas Tamwin",
+        sciTitle: "The Science of Sleep",
+        // NEW SCIENCE CARDS
+        sciCard1Title: "Glymphatic System",
+        sciCard1Text: "During deep sleep, brain cells shrink to open pathways for cerebrospinal fluid to wash away metabolic waste.",
+        sciCard2Title: "Darkness Hormones",
+        sciCard2Text: "Melatonin rises in darkness to prep your body. Adenosine builds up every hour you're awake to create 'sleep pressure'.",
+        sciCard3Title: "REM Sleep Importance",
+        sciCard3Text: "Occurs after 90 mins. The brain processes emotions and solidifies new skills. Lack causes anxiety.",
+        sciCard4Title: "DNA Repair",
+        sciCard4Text: "During Non-REM stages, cell repair and genetic maintenance are activated to fix environmental damage.",
+        sciTip: "Medical Tip: 6 hours of interrupted sleep is worse than 5 hours of continuous sleep for recovery.",
+        reports: {
+            low: { s: "Severe Deprivation", f: "Brain function matches legal intoxication. Metabolism is impaired." },
+            mid: { s: "Insufficient Sleep", f: "6 hours builds 'sleep debt', increasing stress and decreasing immunity." },
+            good: { s: "Optimal Recovery", f: "7-9 hours is the biological target for DNA and cell repair." },
+            high: { s: "Extended Sleep", f: "10+ hours may signal underlying health needs or cause grogginess." }
         }
-    };
+    },
+    ar: {
+        badge: "منصة ابن سينا الصحية التفاعلية", title: "إحصاء النوم", desc: "دراسة مجتمعية حية للراحة والتعافي وصحة الدماغ.",
+        navChart: "المخطط", navScience: "علم النوم",
+        stat1: "المشاركون", stat2: "المتوسط", stat3: "الهدف", goalVal: "٧-٩ ساعات",
+        leg1: "نقص حاد", leg2: "تحذير", leg3: "مثالي", leg4: "نوم زائد",
+        chartTitle: "بث مباشر للبيانات", chartDesc: "اسحب المخطط لليمين واليسار لرؤية جميع الساعات",
+        inputTitle: "كم ساعة نمت الليلة الماضية؟", unit: "ساعة", btnSubmit: "ضع الدبوس",
+        resHead: "التقرير الطبي", resetBtn: "الزائر التالي", credit: "تصميم يوسف فراس تموين",
+        sciTitle: "موسوعة علم النوم",
+        // NEW SCIENCE CARDS
+        sciCard1Title: "الغسيل الدماغي (Glymphatic System)",
+        sciCard1Text: "أثناء النوم العميق، يتقلص حجم خلايا الدماغ لفتح مسارات تسمح للسائل النخاعي بغسل البروتينات السامة والفضلات.",
+        sciCard2Title: "هرمونات العتمة والضغط",
+        sciCard2Text: "الميلاتونين يرتفع عند غياب الضوء ليخبر جسمك بالاستعداد. بينما الأدينوزين يتراكم ليخلق ضغط النوم.",
+        sciCard3Title: "أهمية مرحلة الأحلام (REM)",
+        sciCard3Text: "تحدث بعد حوالي 90 دقيقة. الدماغ فيها يعالج المشاعر المعقدة ويثبت المهارات الجديدة.",
+        sciCard4Title: "إصلاح الحمض النووي (DNA)",
+        sciCard4Text: "في مراحل النوم غير السريع، تنشط عمليات ترميم الخلايا وإصلاح التلف الجيني الذي قد يحدث نهاراً.",
+        sciTip: "نصيحة طبية: النوم المتقطع بـ 6 ساعات أسوأ من النوم المتصل بـ 5 ساعات من حيث جودة التعافي.",
+        reports: {
+            low: { s: "نقص حاد في النوم", f: "وظائف الدماغ تشبه حالة السكر. عمليات الأيض تتعطل بشكل ملحوظ." },
+            mid: { s: "نوم غير كافٍ", f: "6 ساعات تسبب ديوناً صحية ترفع هرمون التوتر وتقلل كفاءة المناعة." },
+            good: { s: "تعافي مثالي", f: "7-9 ساعات هي الهدف البيولوجي لترميم الخلايا واستقرار الذاكرة." },
+            high: { s: "نوم زائد", f: "النوم لأكثر من 10 ساعات قد يشير لحاجات أيضية معينة أو يسبب خمولاً." }
+        }
+    }
+};
+
 
     // --- FUNCTIONS ---
 
@@ -342,15 +363,26 @@
 
     function updateUI() {
         const l = content[window.lang];
-        const elements = [
+                const elements = [
             ['badge-text', l.badge], ['main-title', l.title], ['main-desc', l.desc],
             ['nav-chart', l.navChart], ['nav-science', l.navScience],
             ['stat-label-1', l.stat1], ['stat-label-2', l.stat2], ['stat-label-3', l.stat3],
             ['stat-goal', l.goalVal], ['chart-title', l.chartTitle], ['chart-desc', l.chartDesc],
             ['input-title', l.inputTitle], ['hour-unit', l.unit], ['submit-btn', l.btnSubmit],
             ['header-credit', l.credit], ['footer-credit', l.credit], ['reset-text', l.resetBtn],
-            ['leg-1', l.leg1], ['leg-2', l.leg2], ['leg-3', l.leg3], ['leg-4', l.leg4], ['sci-title', l.sciTitle]
+            ['leg-1', l.leg1], ['leg-2', l.leg2], ['leg-3', l.leg3], ['leg-4', l.leg4], ['sci-title', l.sciTitle],
+            // New additions below:
+            ['sci-card1-title', l.sciCard1Title],
+            ['sci-card1-text', l.sciCard1Text],
+            ['sci-card2-title', l.sciCard2Title],
+            ['sci-card2-text', l.sciCard2Text],
+            ['sci-card3-title', l.sciCard3Title],
+            ['sci-card3-text', l.sciCard3Text],
+            ['sci-card4-title', l.sciCard4Title],
+            ['sci-card4-text', l.sciCard4Text],
+            ['sci-tip', l.sciTip]
         ];
+
         elements.forEach(([id, text]) => {
             const el = document.getElementById(id);
             if (el) el.innerText = text;
